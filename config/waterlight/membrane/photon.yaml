@@ -1,0 +1,72 @@
+# Photon Membrane Profile (V100)
+# For lightweight user-space production daemons
+#
+# This is the default and most restrictive user-space membrane.
+# Services in this profile are event-driven, single-purpose, and stateless.
+
+vertex: V100
+name: photon
+description: Tight isolation for lightweight production services
+
+isolation:
+  pid_namespace: private
+  net_namespace: private
+  mnt_namespace: private
+  uts_namespace: private
+  ipc_namespace: private
+  user_namespace: mapped
+  cgroup_namespace: private
+
+resources:
+  memory:
+    soft: 64M
+    hard: 128M
+    swap: 0
+  cpu:
+    shares: 256
+    burst: 512
+    burst_duration: 30s
+  io:
+    weight: 100
+  pids:
+    max: 64
+
+capabilities:
+  granted:
+    - CAP_NET_BIND_SERVICE
+  ambient:
+    - CAP_NET_BIND_SERVICE
+  denied:
+    - CAP_SYS_ADMIN
+    - CAP_SYS_PTRACE
+    - CAP_NET_ADMIN
+    - CAP_SYS_RAWIO
+    - CAP_SYS_MODULE
+    - CAP_DAC_OVERRIDE
+
+security:
+  seccomp: default-restrict
+  no_new_privs: true
+  readonly_rootfs: true
+
+filesystem:
+  root: overlay
+  writable_paths:
+    - /var/waterlight/state/$SERVICE
+    - /tmp
+  read_only_paths:
+    - /usr
+    - /lib
+    - /etc
+  hidden_paths:
+    - /proc/kcore
+    - /proc/kallsyms
+    - /proc/keys
+    - /sys/firmware
+    - /sys/kernel/debug
+
+elasticity:
+  stretch_trigger: "memory.current > memory.high * 0.9"
+  contract_trigger: "memory.current < memory.high * 0.5"
+  breathe_interval: 30s
+  rupture_policy: fail_closed

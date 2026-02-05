@@ -1,0 +1,44 @@
+# DNS Resolver Fusion Definition
+# Element 3 (Lithium): h-socket + h-store + h-log
+# Vertex: V100 (Photon)
+
+[identity]
+name = dns-resolver
+element = 3
+element_name = Lithium
+vertex = V100
+description = DNS caching resolver and forwarder
+
+[composition]
+# Hydrogen primitives with parameters
+h-socket = udp:53, tcp:53
+h-store = memory:cache:64M:ttl
+h-log = structured:json:/var/waterlight/log/dns.log
+
+[membrane]
+profile = photon
+memory_high = 32M
+memory_max = 64M
+cpu_weight = 50
+pids_max = 16
+capabilities = cap_net_bind_service
+
+[lifecycle]
+start_phase = carbon
+depends_on = networkd
+restart = on-failure
+restart_delay = 5s
+restart_max = 5
+health_check = dns:localhost:53:A:localhost
+health_interval = 30s
+
+[isotopes]
+# Available implementations
+default = unbound
+available = unbound, dnsmasq, coredns
+
+[chirality]
+# sigma=1 additions (when antimatter is active for this vertex)
+antimatter_extras = h-log(debug:verbose), h-pipe(stats:prometheus:9153)
+antimatter_caps = +cap_sys_ptrace
+antimatter_ports = 9153

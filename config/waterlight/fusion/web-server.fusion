@@ -1,0 +1,46 @@
+# Web Server Fusion Definition
+# Element 8 (Oxygen): complex composition
+# Vertex: V110 (Electron)
+
+[identity]
+name = web-server
+element = 8
+element_name = Oxygen
+vertex = V110
+description = HTTP/HTTPS reverse proxy and static file server
+
+[composition]
+h-socket = tcp:80, tcp:443
+h-pipe = backend:upstream
+h-store = config:yaml
+h-gate = tls:certificates
+h-gate = auth:basic,bearer
+h-log = structured:json:/var/waterlight/log/web.log
+h-timer = keepalive:60s
+h-watch = config:/etc/waterlight/services/web-server/
+
+[membrane]
+profile = electron
+memory_high = 256M
+memory_max = 512M
+cpu_weight = 100
+pids_max = 256
+capabilities = cap_net_bind_service
+
+[lifecycle]
+start_phase = oxygen
+depends_on = dns-resolver networkd
+restart = always
+restart_delay = 3s
+restart_max = 10
+health_check = http:localhost:80:/health
+health_interval = 15s
+
+[isotopes]
+default = nginx
+available = nginx, caddy, lighttpd
+
+[chirality]
+antimatter_extras = h-log(debug:access+error), h-pipe(stats:prometheus:9180)
+antimatter_caps = +cap_sys_ptrace
+antimatter_ports = 9180

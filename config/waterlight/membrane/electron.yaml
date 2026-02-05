@@ -1,0 +1,64 @@
+# Electron Membrane Profile (V110)
+# For full user-space production services
+#
+# Per-service configuration with generous defaults.
+# Each electron service gets its own membrane definition.
+
+vertex: V110
+name: electron
+description: Configurable isolation for heavyweight production services
+
+isolation:
+  pid_namespace: private
+  net_namespace: per-service
+  mnt_namespace: private
+  uts_namespace: private
+  ipc_namespace: per-service
+  user_namespace: mapped
+  cgroup_namespace: private
+
+resources:
+  memory:
+    soft: "${SERVICE_MEMORY_HIGH:-512M}"
+    hard: "${SERVICE_MEMORY_MAX:-1G}"
+    swap: "${SERVICE_SWAP_MAX:-0}"
+  cpu:
+    shares: "${SERVICE_CPU_WEIGHT:-100}"
+    max: "${SERVICE_CPU_MAX:-max}"
+    burst: "${SERVICE_CPU_BURST:-200}"
+  io:
+    weight: "${SERVICE_IO_WEIGHT:-100}"
+  pids:
+    max: "${SERVICE_PIDS_MAX:-4096}"
+
+capabilities:
+  granted: "${SERVICE_CAPS:-cap_net_bind_service,cap_setuid,cap_setgid}"
+  ambient: "${SERVICE_AMBIENT_CAPS:-cap_net_bind_service}"
+  denied:
+    - CAP_SYS_MODULE
+    - CAP_SYS_RAWIO
+
+security:
+  seccomp: "${SERVICE_SECCOMP:-default-restrict}"
+  no_new_privs: true
+  readonly_rootfs: false
+
+filesystem:
+  root: overlay
+  writable_paths:
+    - /var/waterlight/state/$SERVICE
+    - /tmp
+    - "${SERVICE_DATA_DIR}"
+  volumes: "${SERVICE_VOLUMES}"
+
+elasticity:
+  stretch_trigger: "cpu.stat.nr_throttled > 100/min"
+  contract_trigger: "memory.current < memory.high * 0.3"
+  breathe_interval: 60s
+  rupture_policy: fail_closed
+
+health:
+  check_interval: 30s
+  check_timeout: 5s
+  restart_limit: 3
+  restart_delay: 10s
