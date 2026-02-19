@@ -18,3 +18,8 @@ Thumbs.db
 
 # Docker
 .docker/
+
+# Environment files
+.env
+.env.*
+*.env
